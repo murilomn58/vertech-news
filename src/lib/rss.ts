@@ -1,0 +1,202 @@
+import Parser from "rss-parser";
+import { FEED_SOURCES } from "./constants";
+import { categorizeArticle } from "./categories";
+import { generateId, normalizeUrl, stripHtml, truncateText } from "./utils";
+import { FeedSource, NewsArticle } from "./types";
+
+const parser = new Parser({
+  timeout: 10000,
+  customFields: {
+    item: [
+      ["media:content", "mediaContent", { keepArray: false }],
+      ["media:thumbnail", "mediaThumbnail", { keepArray: false }],
+      ["enclosure", "enclosure"],
+    ],
+  },
+});
+
+function extractImageUrl(item: Record<string, unknown>): string | null {
+  // Try enclosure
+  const enclosure = item.enclosure as
+    | { url?: string; type?: string }
+    | undefined;
+  if (enclosure?.url && enclosure.type?.startsWith("image")) {
+    return enclosure.url;
+  }
+
+  // Try media:content
+  const mediaContent = item.mediaContent as
+    | { $?: { url?: string } }
+    | undefined;
+  if (mediaContent?.$?.url) {
+    return mediaContent.$.url;
+  }
+
+  // Try media:thumbnail
+  const mediaThumbnail = item.mediaThumbnail as
+    | { $?: { url?: string } }
+    | undefined;
+  if (mediaThumbnail?.$?.url) {
+    return mediaThumbnail.$.url;
+  }
+
+  // Try extracting from content:encoded or content HTML
+  const contentEncoded = (item["content:encoded"] || "") as string;
+  const content = (item.content || "") as string;
+  const description = (item.description || "") as string;
+  const summary = (item.summary || "") as string;
+
+  // Search all HTML fields for images
+  for (const html of [contentEncoded, content, description, summary]) {
+    if (!html) continue;
+    // Match src with double quotes, single quotes, or no quotes
+    const imgMatch = html.match(
+      /<img[^>]+src=["']([^"']+)["']/i
+    );
+    if (imgMatch?.[1] && !imgMatch[1].includes("data:")) {
+      return imgMatch[1];
+    }
+  }
+
+  return null;
+}
+
+async function fetchOgImage(url: string): Promise<string | null> {
+  try {
+    const controller = new AbortController();
+    const timeout = setTimeout(() => controller.abort(), 5000);
+    const res = await fetch(url, {
+      signal: controller.signal,
+      headers: {
+        "User-Agent":
+          "Mozilla/5.0 (compatible; VertechNewsBot/1.0; +https://vertech-news.up.railway.app)",
+      },
+      redirect: "follow",
+    });
+    clearTimeout(timeout);
+
+    if (!res.ok) return null;
+
+    const html = await res.text();
+    // Try og:image
+    const ogMatch = html.match(
+      /<meta[^>]+property=["']og:image["'][^>]+content=["']([^"']+)["']/i
+    );
+    if (ogMatch?.[1]) return ogMatch[1];
+
+    // Try twitter:image
+    const twMatch = html.match(
+      /<meta[^>]+name=["']twitter:image["'][^>]+content=["']([^"']+)["']/i
+    );
+    if (twMatch?.[1]) return twMatch[1];
+
+    // Try reverse order (content before property)
+    const ogMatch2 = html.match(
+      /<meta[^>]+content=["']([^"']+)["'][^>]+property=["']og:image["']/i
+    );
+    if (ogMatch2?.[1]) return ogMatch2[1];
+
+    return null;
+  } catch {
+    return null;
+  }
+}
+
+async function fetchFeed(source: FeedSource): Promise<NewsArticle[]> {
+  try {
+    const feed = await parser.parseURL(source.url);
+    return (feed.items || []).map((item) => {
+      const rawDescription =
+        item.contentSnippet || item.content || item.summary || "";
+      const cleanDescription = stripHtml(rawDescription);
+
+      return {
+        id: generateId(item.link || item.guid || item.title || ""),
+        title: item.title || "Untitled",
+        description: truncateText(cleanDescription, 200),
+        url: item.link || "",
+        imageUrl: extractImageUrl(
+          item as unknown as Record<string, unknown>
+        ),
+        source: source.source,
+        category: categorizeArticle(
+          item.title || "",
+          cleanDescription,
+          source.defaultCategory
+        ),
+        publishedAt: item.isoDate || item.pubDate || new Date().toISOString(),
+      };
+    });
+  } catch (error) {
+    console.error(`Failed to fetch feed ${source.url}:`, error);
+    return [];
+  }
+}
+
+function deduplicateArticles(articles: NewsArticle[]): NewsArticle[] {
+  const seen = new Set<string>();
+  return articles.filter((article) => {
+    const normalizedUrl = normalizeUrl(article.url);
+    if (seen.has(normalizedUrl)) return false;
+    seen.add(normalizedUrl);
+    return true;
+  });
+}
+
+async function enrichWithOgImages(
+  articles: NewsArticle[]
+): Promise<NewsArticle[]> {
+  // Only fetch og:image for articles that don't have an image yet
+  // Process in batches of 10 to avoid overwhelming servers
+  const BATCH_SIZE = 10;
+  const result = [...articles];
+
+  const missingImageIndices = result
+    .map((a, i) => (a.imageUrl ? -1 : i))
+    .filter((i) => i !== -1);
+
+  for (let i = 0; i < missingImageIndices.length; i += BATCH_SIZE) {
+    const batch = missingImageIndices.slice(i, i + BATCH_SIZE);
+    const promises = batch.map(async (idx) => {
+      const ogImage = await fetchOgImage(result[idx].url);
+      if (ogImage) {
+        result[idx] = { ...result[idx], imageUrl: ogImage };
+      }
+    });
+    await Promise.allSettled(promises);
+  }
+
+  return result;
+}
+
+export async function fetchAllNews(): Promise<NewsArticle[]> {
+  const results = await Promise.allSettled(
+    FEED_SOURCES.map((source) => fetchFeed(source))
+  );
+
+  const articles = results
+    .filter(
+      (r): r is PromiseFulfilledResult<NewsArticle[]> =>
+        r.status === "fulfilled"
+    )
+    .flatMap((r) => r.value);
+
+  const deduplicated = deduplicateArticles(articles);
+
+  const sorted = deduplicated.sort(
+    (a, b) =>
+      new Date(b.publishedAt).getTime() - new Date(a.publishedAt).getTime()
+  );
+
+  // Enrich articles missing images with og:image from the article pages
+  const enriched = await enrichWithOgImages(sorted);
+
+  return enriched;
+}
+
+export function getArticlesByCategory(
+  articles: NewsArticle[],
+  category: string
+): NewsArticle[] {
+  return articles.filter((a) => a.category === category);
+}

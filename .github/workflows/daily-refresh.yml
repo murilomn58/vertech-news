@@ -1,0 +1,17 @@
+name: Daily News Refresh
+
+on:
+  schedule:
+    - cron: '0 6 * * *' # Every day at 06:00 UTC
+  workflow_dispatch: # Allow manual trigger
+
+jobs:
+  revalidate:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Trigger revalidation
+        run: |
+          curl -X POST "${{ secrets.SITE_URL }}/api/revalidate" \
+            -H "Content-Type: application/json" \
+            -H "x-revalidation-secret: ${{ secrets.REVALIDATION_SECRET }}" \
+            --fail --silent --show-error
