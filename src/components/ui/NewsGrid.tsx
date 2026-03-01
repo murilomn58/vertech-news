@@ -1,5 +1,6 @@
 import { NewsArticle } from "@/lib/types";
 import NewsCard from "./NewsCard";
+import ScrollReveal from "./ScrollReveal";
 
 export default function NewsGrid({ articles }: { articles: NewsArticle[] }) {
   if (articles.length === 0) {
@@ -15,7 +16,9 @@ export default function NewsGrid({ articles }: { articles: NewsArticle[] }) {
   return (
     <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
       {articles.map((article, i) => (
-        <NewsCard key={article.id} article={article} index={i} />
+        <ScrollReveal key={article.id} delay={i * 60}>
+          <NewsCard article={article} />
+        </ScrollReveal>
       ))}
     </div>
   );

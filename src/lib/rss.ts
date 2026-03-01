@@ -15,6 +15,32 @@ const parser = new Parser({
   },
 });
 
+/**
+ * Google News wraps article URLs in redirects like:
+ * https://news.google.com/rss/articles/CBMi...
+ * The actual URL is in the <a href="..."> inside the description HTML,
+ * or we need to follow the redirect.
+ */
+function unwrapGoogleNewsUrl(url: string): string {
+  if (!url) return url;
+  // Google News URLs contain the actual URL encoded in them
+  try {
+    const u = new URL(url);
+    // Check if it's a Google News redirect
+    if (
+      u.hostname === "news.google.com" ||
+      u.hostname === "news.google.com.br"
+    ) {
+      // Try to extract from query params
+      const actualUrl = u.searchParams.get("url");
+      if (actualUrl) return actualUrl;
+    }
+  } catch {
+    // Not a valid URL, return as-is
+  }
+  return url;
+}
+
 function extractImageUrl(item: Record<string, unknown>): string | null {
   // Try enclosure
   const enclosure = item.enclosure as
@@ -49,10 +75,7 @@ function extractImageUrl(item: Record<string, unknown>): string | null {
   // Search all HTML fields for images
   for (const html of [contentEncoded, content, description, summary]) {
     if (!html) continue;
-    // Match src with double quotes, single quotes, or no quotes
-    const imgMatch = html.match(
-      /<img[^>]+src=["']([^"']+)["']/i
-    );
+    const imgMatch = html.match(/<img[^>]+src=["']([^"']+)["']/i);
     if (imgMatch?.[1] && !imgMatch[1].includes("data:")) {
       return imgMatch[1];
     }
@@ -61,15 +84,29 @@ function extractImageUrl(item: Record<string, unknown>): string | null {
   return null;
 }
 
+function getFaviconUrl(articleUrl: string): string | null {
+  try {
+    const u = new URL(unwrapGoogleNewsUrl(articleUrl));
+    return `https://www.google.com/s2/favicons?domain=${u.hostname}&sz=128`;
+  } catch {
+    return null;
+  }
+}
+
 async function fetchOgImage(url: string): Promise<string | null> {
+  // Unwrap Google News redirect first
+  const targetUrl = unwrapGoogleNewsUrl(url);
+
   try {
     const controller = new AbortController();
-    const timeout = setTimeout(() => controller.abort(), 5000);
-    const res = await fetch(url, {
+    const timeout = setTimeout(() => controller.abort(), 8000);
+
+    const res = await fetch(targetUrl, {
       signal: controller.signal,
       headers: {
         "User-Agent":
-          "Mozilla/5.0 (compatible; VertechNewsBot/1.0; +https://vertech-news.up.railway.app)",
+          "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36",
+        Accept: "text/html,application/xhtml+xml",
       },
       redirect: "follow",
     });
@@ -77,25 +114,76 @@ async function fetchOgImage(url: string): Promise<string | null> {
 
     if (!res.ok) return null;
 
-    const html = await res.text();
-    // Try og:image
-    const ogMatch = html.match(
-      /<meta[^>]+property=["']og:image["'][^>]+content=["']([^"']+)["']/i
-    );
+    // Only read first 50KB to find meta tags faster
+    const reader = res.body?.getReader();
+    if (!reader) return null;
+
+    let html = "";
+    const decoder = new TextDecoder();
+    while (html.length < 50000) {
+      const { done, value } = await reader.read();
+      if (done) break;
+      html += decoder.decode(value, { stream: true });
+      // Stop early if we've passed the <head> section
+      if (html.includes("</head>")) break;
+    }
+    reader.cancel();
+
+    // Try og:image (both attribute orders)
+    const ogMatch =
+      html.match(
+        /<meta[^>]+property=["']og:image["'][^>]+content=["']([^"']+)["']/i
+      ) ||
+      html.match(
+        /<meta[^>]+content=["']([^"']+)["'][^>]+property=["']og:image["']/i
+      );
     if (ogMatch?.[1]) return ogMatch[1];
 
-    // Try twitter:image
-    const twMatch = html.match(
-      /<meta[^>]+name=["']twitter:image["'][^>]+content=["']([^"']+)["']/i
-    );
+    // Try twitter:image (both attribute orders)
+    const twMatch =
+      html.match(
+        /<meta[^>]+name=["']twitter:image["'][^>]+content=["']([^"']+)["']/i
+      ) ||
+      html.match(
+        /<meta[^>]+content=["']([^"']+)["'][^>]+name=["']twitter:image["']/i
+      );
     if (twMatch?.[1]) return twMatch[1];
 
-    // Try reverse order (content before property)
-    const ogMatch2 = html.match(
-      /<meta[^>]+content=["']([^"']+)["'][^>]+property=["']og:image["']/i
+    // Try twitter:image:src
+    const twSrcMatch = html.match(
+      /<meta[^>]+name=["']twitter:image:src["'][^>]+content=["']([^"']+)["']/i
     );
-    if (ogMatch2?.[1]) return ogMatch2[1];
+    if (twSrcMatch?.[1]) return twSrcMatch[1];
 
+    return null;
+  } catch {
+    return null;
+  }
+}
+
+// If we still can't get an image, try following the Google News URL redirect to get the actual article URL
+async function resolveGoogleNewsRedirect(
+  url: string
+): Promise<string | null> {
+  if (!url.includes("news.google.com")) return null;
+
+  try {
+    const controller = new AbortController();
+    const timeout = setTimeout(() => controller.abort(), 5000);
+    const res = await fetch(url, {
+      signal: controller.signal,
+      redirect: "follow",
+      headers: {
+        "User-Agent":
+          "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36",
+      },
+    });
+    clearTimeout(timeout);
+
+    // The final URL after redirects is the actual article
+    if (res.url && !res.url.includes("news.google.com")) {
+      return res.url;
+    }
     return null;
   } catch {
     return null;
@@ -146,8 +234,6 @@ function deduplicateArticles(articles: NewsArticle[]): NewsArticle[] {
 async function enrichWithOgImages(
   articles: NewsArticle[]
 ): Promise<NewsArticle[]> {
-  // Only fetch og:image for articles that don't have an image yet
-  // Process in batches of 10 to avoid overwhelming servers
   const BATCH_SIZE = 10;
   const result = [...articles];
 
@@ -158,9 +244,31 @@ async function enrichWithOgImages(
   for (let i = 0; i < missingImageIndices.length; i += BATCH_SIZE) {
     const batch = missingImageIndices.slice(i, i + BATCH_SIZE);
     const promises = batch.map(async (idx) => {
-      const ogImage = await fetchOgImage(result[idx].url);
+      let articleUrl = result[idx].url;
+
+      // Try og:image from the direct URL first
+      let ogImage = await fetchOgImage(articleUrl);
+
+      // If that failed and it's a Google News URL, resolve the redirect
+      if (!ogImage && articleUrl.includes("news.google.com")) {
+        const resolvedUrl = await resolveGoogleNewsRedirect(articleUrl);
+        if (resolvedUrl) {
+          ogImage = await fetchOgImage(resolvedUrl);
+          // Also update the article URL to the actual article
+          if (resolvedUrl) {
+            articleUrl = resolvedUrl;
+          }
+        }
+      }
+
       if (ogImage) {
-        result[idx] = { ...result[idx], imageUrl: ogImage };
+        result[idx] = { ...result[idx], imageUrl: ogImage, url: articleUrl };
+      } else {
+        // Fallback: use source domain favicon
+        const favicon = getFaviconUrl(articleUrl);
+        if (favicon) {
+          result[idx] = { ...result[idx], imageUrl: favicon, url: articleUrl };
+        }
       }
     });
     await Promise.allSettled(promises);
@@ -188,9 +296,7 @@ export async function fetchAllNews(): Promise<NewsArticle[]> {
       new Date(b.publishedAt).getTime() - new Date(a.publishedAt).getTime()
   );
 
-  // Enrich articles missing images with og:image from the article pages
   const enriched = await enrichWithOgImages(sorted);
-
   return enriched;
 }
 

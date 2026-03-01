@@ -1,42 +1,77 @@
 "use client";
 
-import { motion } from "framer-motion";
+import { useRef } from "react";
 import { CATEGORIES } from "@/lib/constants";
 import { NewsArticle } from "@/lib/types";
 import { formatDate } from "@/lib/utils";
 import CategoryBadge from "./CategoryBadge";
 import SourceBadge from "./SourceBadge";
 
-export default function NewsCard({
-  article,
-  index = 0,
-}: {
-  article: NewsArticle;
-  index?: number;
-}) {
+export default function NewsCard({ article }: { article: NewsArticle }) {
   const catColor = CATEGORIES[article.category].color;
+  const cardRef = useRef<HTMLAnchorElement>(null);
+  const glowRef = useRef<HTMLDivElement>(null);
+
+  function handleMouseMove(e: React.MouseEvent) {
+    const card = cardRef.current;
+    const glow = glowRef.current;
+    if (!card || !glow) return;
+
+    const rect = card.getBoundingClientRect();
+    const x = e.clientX - rect.left;
+    const y = e.clientY - rect.top;
+    const centerX = rect.width / 2;
+    const centerY = rect.height / 2;
+
+    // 3D tilt (max 4 degrees)
+    const rotateX = ((y - centerY) / centerY) * -4;
+    const rotateY = ((x - centerX) / centerX) * 4;
+    card.style.transform = `perspective(800px) rotateX(${rotateX}deg) rotateY(${rotateY}deg) scale(1.02)`;
+
+    // Light reflection that follows cursor
+    glow.style.opacity = "1";
+    glow.style.background = `radial-gradient(300px circle at ${x}px ${y}px, ${catColor}20, transparent 60%)`;
+  }
+
+  function handleMouseLeave() {
+    const card = cardRef.current;
+    const glow = glowRef.current;
+    if (card) {
+      card.style.transform = "perspective(800px) rotateX(0) rotateY(0) scale(1)";
+      card.style.borderColor = "";
+      card.style.boxShadow = "";
+    }
+    if (glow) {
+      glow.style.opacity = "0";
+    }
+  }
+
+  function handleMouseEnter() {
+    const card = cardRef.current;
+    if (card) {
+      card.style.borderColor = catColor;
+      card.style.boxShadow = `0 0 5px ${catColor}, 0 0 20px ${catColor}33`;
+    }
+  }
 
   return (
-    <motion.a
+    <a
+      ref={cardRef}
       href={article.url}
       target="_blank"
       rel="noopener noreferrer"
-      initial={{ opacity: 0, y: 20 }}
-      animate={{ opacity: 1, y: 0 }}
-      transition={{ duration: 0.4, delay: index * 0.05 }}
-      className="group block bg-surface border border-border-dim rounded-lg overflow-hidden transition-all duration-300 hover:border-opacity-100"
-      style={{
-        ["--card-color" as string]: catColor,
-      }}
-      onMouseEnter={(e) => {
-        e.currentTarget.style.borderColor = catColor;
-        e.currentTarget.style.boxShadow = `0 0 5px ${catColor}, 0 0 20px ${catColor}33`;
-      }}
-      onMouseLeave={(e) => {
-        e.currentTarget.style.borderColor = "";
-        e.currentTarget.style.boxShadow = "";
-      }}
+      className="group relative block bg-surface border border-border-dim rounded-lg overflow-hidden transition-[border-color,box-shadow] duration-300"
+      style={{ transformStyle: "preserve-3d", transition: "transform 0.15s ease, border-color 0.3s, box-shadow 0.3s" }}
+      onMouseMove={handleMouseMove}
+      onMouseEnter={handleMouseEnter}
+      onMouseLeave={handleMouseLeave}
     >
+      {/* Light reflection overlay */}
+      <div
+        ref={glowRef}
+        className="absolute inset-0 z-10 pointer-events-none rounded-lg opacity-0 transition-opacity duration-300"
+      />
+
       {/* Image */}
       <div className="aspect-video relative overflow-hidden bg-surface-light">
         {article.imageUrl ? (
@@ -46,7 +81,13 @@ export default function NewsCard({
             className="w-full h-full object-cover transition-transform duration-500 group-hover:scale-105"
             loading="lazy"
             onError={(e) => {
-              (e.target as HTMLImageElement).style.display = "none";
+              const img = e.target as HTMLImageElement;
+              // If it's already a favicon fallback, hide completely
+              if (img.src.includes("s2/favicons")) {
+                img.style.display = "none";
+              } else {
+                img.style.display = "none";
+              }
             }}
           />
         ) : (
@@ -56,12 +97,15 @@ export default function NewsCard({
               background: `linear-gradient(135deg, ${catColor}15, ${catColor}05)`,
             }}
           >
-            <span className="font-mono text-4xl" style={{ color: `${catColor}30` }}>
+            <span
+              className="font-mono text-4xl"
+              style={{ color: `${catColor}30` }}
+            >
               &gt;_
             </span>
           </div>
         )}
-        <div className="absolute top-2 left-2">
+        <div className="absolute top-2 left-2 z-20">
           <CategoryBadge category={article.category} />
         </div>
       </div>
@@ -81,6 +125,6 @@ export default function NewsCard({
           {formatDate(article.publishedAt)}
         </time>
       </div>
-    </motion.a>
+    </a>
   );
 }
