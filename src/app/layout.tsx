@@ -8,6 +8,7 @@ import Footer from "@/components/layout/Footer";
 import NotificationPrompt from "@/components/ui/NotificationPrompt";
 import GoogleAnalytics from "@/components/analytics/GoogleAnalytics";
 import TrackingScript from "@/components/analytics/TrackingScript";
+import { Analytics } from "@vercel/analytics/next";
 import { SITE_CONFIG } from "@/lib/constants";
 
 const inter = Inter({
@@ -74,6 +75,7 @@ export default function RootLayout({
         <NotificationPrompt />
         <GoogleAnalytics />
         <TrackingScript />
+        <Analytics />
       </body>
     </html>
   );
