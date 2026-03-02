@@ -16,29 +16,25 @@ const parser = new Parser({
 });
 
 /**
- * Google News wraps article URLs in redirects like:
- * https://news.google.com/rss/articles/CBMi...
- * The actual URL is in the <a href="..."> inside the description HTML,
- * or we need to follow the redirect.
+ * Google News RSS wraps URLs in redirects (news.google.com/rss/articles/...).
+ * These use JS redirects, not HTTP, so fetch() can't follow them.
+ * But the description HTML contains <a href="ACTUAL_URL">, so we extract that.
  */
-function unwrapGoogleNewsUrl(url: string): string {
-  if (!url) return url;
-  // Google News URLs contain the actual URL encoded in them
-  try {
-    const u = new URL(url);
-    // Check if it's a Google News redirect
-    if (
-      u.hostname === "news.google.com" ||
-      u.hostname === "news.google.com.br"
-    ) {
-      // Try to extract from query params
-      const actualUrl = u.searchParams.get("url");
-      if (actualUrl) return actualUrl;
-    }
-  } catch {
-    // Not a valid URL, return as-is
+function extractActualUrlFromHtml(html: string): string | null {
+  if (!html) return null;
+  const match = html.match(/<a[^>]+href=["']([^"']+)["']/i);
+  if (match?.[1] && !match[1].includes("news.google.com")) {
+    return match[1];
   }
-  return url;
+  return null;
+}
+
+function isGoogleNewsUrl(url: string): boolean {
+  try {
+    return new URL(url).hostname.includes("news.google.com");
+  } catch {
+    return false;
+  }
 }
 
 function extractImageUrl(item: Record<string, unknown>): string | null {
@@ -66,13 +62,12 @@ function extractImageUrl(item: Record<string, unknown>): string | null {
     return mediaThumbnail.$.url;
   }
 
-  // Try extracting from content:encoded or content HTML
+  // Try extracting from content:encoded or content HTML (skip Google News links)
   const contentEncoded = (item["content:encoded"] || "") as string;
   const content = (item.content || "") as string;
   const description = (item.description || "") as string;
   const summary = (item.summary || "") as string;
 
-  // Search all HTML fields for images
   for (const html of [contentEncoded, content, description, summary]) {
     if (!html) continue;
     const imgMatch = html.match(/<img[^>]+src=["']([^"']+)["']/i);
@@ -84,24 +79,12 @@ function extractImageUrl(item: Record<string, unknown>): string | null {
   return null;
 }
 
-function getFaviconUrl(articleUrl: string): string | null {
-  try {
-    const u = new URL(unwrapGoogleNewsUrl(articleUrl));
-    return `https://www.google.com/s2/favicons?domain=${u.hostname}&sz=128`;
-  } catch {
-    return null;
-  }
-}
-
 async function fetchOgImage(url: string): Promise<string | null> {
-  // Unwrap Google News redirect first
-  const targetUrl = unwrapGoogleNewsUrl(url);
-
   try {
     const controller = new AbortController();
     const timeout = setTimeout(() => controller.abort(), 8000);
 
-    const res = await fetch(targetUrl, {
+    const res = await fetch(url, {
       signal: controller.signal,
       headers: {
         "User-Agent":
@@ -114,7 +97,7 @@ async function fetchOgImage(url: string): Promise<string | null> {
 
     if (!res.ok) return null;
 
-    // Only read first 50KB to find meta tags faster
+    // Only read first 50KB to find meta tags quickly
     const reader = res.body?.getReader();
     if (!reader) return null;
 
@@ -124,10 +107,17 @@ async function fetchOgImage(url: string): Promise<string | null> {
       const { done, value } = await reader.read();
       if (done) break;
       html += decoder.decode(value, { stream: true });
-      // Stop early if we've passed the <head> section
       if (html.includes("</head>")) break;
     }
     reader.cancel();
+
+    // Reject Google News og:images (they show the GN logo)
+    function isValidImage(imgUrl: string): boolean {
+      if (!imgUrl) return false;
+      if (imgUrl.includes("news.google.com")) return false;
+      if (imgUrl.includes("google.com/s2/favicons")) return false;
+      return true;
+    }
 
     // Try og:image (both attribute orders)
     const ogMatch =
@@ -137,7 +127,7 @@ async function fetchOgImage(url: string): Promise<string | null> {
       html.match(
         /<meta[^>]+content=["']([^"']+)["'][^>]+property=["']og:image["']/i
       );
-    if (ogMatch?.[1]) return ogMatch[1];
+    if (ogMatch?.[1] && isValidImage(ogMatch[1])) return ogMatch[1];
 
     // Try twitter:image (both attribute orders)
     const twMatch =
@@ -147,43 +137,14 @@ async function fetchOgImage(url: string): Promise<string | null> {
       html.match(
         /<meta[^>]+content=["']([^"']+)["'][^>]+name=["']twitter:image["']/i
       );
-    if (twMatch?.[1]) return twMatch[1];
+    if (twMatch?.[1] && isValidImage(twMatch[1])) return twMatch[1];
 
     // Try twitter:image:src
     const twSrcMatch = html.match(
       /<meta[^>]+name=["']twitter:image:src["'][^>]+content=["']([^"']+)["']/i
     );
-    if (twSrcMatch?.[1]) return twSrcMatch[1];
+    if (twSrcMatch?.[1] && isValidImage(twSrcMatch[1])) return twSrcMatch[1];
 
-    return null;
-  } catch {
-    return null;
-  }
-}
-
-// If we still can't get an image, try following the Google News URL redirect to get the actual article URL
-async function resolveGoogleNewsRedirect(
-  url: string
-): Promise<string | null> {
-  if (!url.includes("news.google.com")) return null;
-
-  try {
-    const controller = new AbortController();
-    const timeout = setTimeout(() => controller.abort(), 5000);
-    const res = await fetch(url, {
-      signal: controller.signal,
-      redirect: "follow",
-      headers: {
-        "User-Agent":
-          "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36",
-      },
-    });
-    clearTimeout(timeout);
-
-    // The final URL after redirects is the actual article
-    if (res.url && !res.url.includes("news.google.com")) {
-      return res.url;
-    }
     return null;
   } catch {
     return null;
@@ -198,15 +159,37 @@ async function fetchFeed(source: FeedSource): Promise<NewsArticle[]> {
         item.contentSnippet || item.content || item.summary || "";
       const cleanDescription = stripHtml(rawDescription);
 
+      // For Google News feeds, extract the actual article URL from the HTML
+      let articleUrl = item.link || "";
+      if (isGoogleNewsUrl(articleUrl)) {
+        const descriptionHtml = (item.content || item.summary || "") as string;
+        const actualUrl = extractActualUrlFromHtml(descriptionHtml);
+        if (actualUrl) {
+          articleUrl = actualUrl;
+        }
+      }
+
+      // Also try to get source name from Google News (it's in <font> tags)
+      let sourceName = source.source;
+      if (source.source === "Google News") {
+        const html = (item.content || item.summary || "") as string;
+        const fontMatch = html.match(
+          /<font[^>]*color=["']#6f6f6f["'][^>]*>([^<]+)<\/font>/i
+        );
+        if (fontMatch?.[1]) {
+          sourceName = fontMatch[1].trim();
+        }
+      }
+
       return {
-        id: generateId(item.link || item.guid || item.title || ""),
+        id: generateId(articleUrl || item.guid || item.title || ""),
         title: item.title || "Untitled",
         description: truncateText(cleanDescription, 200),
-        url: item.link || "",
+        url: articleUrl,
         imageUrl: extractImageUrl(
           item as unknown as Record<string, unknown>
         ),
-        source: source.source,
+        source: sourceName,
         category: categorizeArticle(
           item.title || "",
           cleanDescription,
@@ -244,31 +227,13 @@ async function enrichWithOgImages(
   for (let i = 0; i < missingImageIndices.length; i += BATCH_SIZE) {
     const batch = missingImageIndices.slice(i, i + BATCH_SIZE);
     const promises = batch.map(async (idx) => {
-      let articleUrl = result[idx].url;
+      const article = result[idx];
+      // Skip Google News URLs — they'll only return the GN logo
+      if (isGoogleNewsUrl(article.url)) return;
 
-      // Try og:image from the direct URL first
-      let ogImage = await fetchOgImage(articleUrl);
-
-      // If that failed and it's a Google News URL, resolve the redirect
-      if (!ogImage && articleUrl.includes("news.google.com")) {
-        const resolvedUrl = await resolveGoogleNewsRedirect(articleUrl);
-        if (resolvedUrl) {
-          ogImage = await fetchOgImage(resolvedUrl);
-          // Also update the article URL to the actual article
-          if (resolvedUrl) {
-            articleUrl = resolvedUrl;
-          }
-        }
-      }
-
+      const ogImage = await fetchOgImage(article.url);
       if (ogImage) {
-        result[idx] = { ...result[idx], imageUrl: ogImage, url: articleUrl };
-      } else {
-        // Fallback: use source domain favicon
-        const favicon = getFaviconUrl(articleUrl);
-        if (favicon) {
-          result[idx] = { ...result[idx], imageUrl: favicon, url: articleUrl };
-        }
+        result[idx] = { ...result[idx], imageUrl: ogImage };
       }
     });
     await Promise.allSettled(promises);
