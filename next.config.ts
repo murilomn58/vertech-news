@@ -23,6 +23,12 @@ const nextConfig: NextConfig = {
       { protocol: "https", hostname: "platform.theverge.com" },
       { protocol: "https", hostname: "wp.technologyreview.com" },
       { protocol: "https", hostname: "venturebeat.com" },
+      // Cybersecurity publishers
+      { protocol: "https", hostname: "**.bleepingcomputer.com" },
+      { protocol: "https", hostname: "**.thehackernews.com" },
+      { protocol: "https", hostname: "krebsonsecurity.com" },
+      { protocol: "https", hostname: "**.krebsonsecurity.com" },
+      { protocol: "https", hostname: "blogger.googleusercontent.com" },
     ],
   },
   serverExternalPackages: ["firebase-admin"],

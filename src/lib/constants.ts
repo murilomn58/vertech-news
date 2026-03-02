@@ -2,9 +2,9 @@ import { CategoryConfig, CategorySlug, FeedSource } from "./types";
 
 export const SITE_CONFIG = {
   name: "Vertech News",
-  tagline: "AI Intelligence Feed",
+  tagline: "Tech & AI Intelligence Feed",
   description:
-    "Dark futuristic AI news aggregator covering Claude Code, general AI, and AI business. Updated daily.",
+    "Dark futuristic tech news aggregator covering AI, cybersecurity, and general technology. Updated daily.",
   url: process.env.NEXT_PUBLIC_SITE_URL || "https://vertechnews.vercel.app",
 };
 
@@ -26,6 +26,18 @@ export const CATEGORIES: Record<CategorySlug, CategoryConfig> = {
     description: "AI companies, Elon Musk, Tesla, funding & deals",
     color: "#f59e0b",
     slug: "ai-business",
+  },
+  cybersecurity: {
+    name: "Cybersecurity",
+    description: "Security threats, vulnerabilities, data breaches & defense",
+    color: "#ef4444",
+    slug: "cybersecurity",
+  },
+  "tech-general": {
+    name: "Tech General",
+    description: "Software, hardware, startups & general technology news",
+    color: "#10b981",
+    slug: "tech-general",
   },
 };
 
@@ -67,5 +79,34 @@ export const FEED_SOURCES: FeedSource[] = [
     url: "https://search.cnbc.com/rs/search/combinedcms/view.xml?partnerId=wrss01&id=19854910",
     defaultCategory: "ai-business",
     source: "CNBC",
+  },
+
+  // Cybersecurity
+  {
+    url: "https://www.bleepingcomputer.com/feed/",
+    defaultCategory: "cybersecurity",
+    source: "BleepingComputer",
+  },
+  {
+    url: "https://feeds.feedburner.com/TheHackersNews",
+    defaultCategory: "cybersecurity",
+    source: "The Hacker News",
+  },
+  {
+    url: "https://krebsonsecurity.com/feed/",
+    defaultCategory: "cybersecurity",
+    source: "Krebs on Security",
+  },
+
+  // Tech General
+  {
+    url: "https://www.theverge.com/rss/index.xml",
+    defaultCategory: "tech-general",
+    source: "The Verge",
+  },
+  {
+    url: "https://feeds.arstechnica.com/arstechnica/index",
+    defaultCategory: "tech-general",
+    source: "Ars Technica",
   },
 ];

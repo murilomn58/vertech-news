@@ -9,11 +9,7 @@ import TimestampBadge from "@/components/ui/TimestampBadge";
 export const revalidate = 86400;
 
 export function generateStaticParams() {
-  return [
-    { slug: "claude-code" },
-    { slug: "ai-general" },
-    { slug: "ai-business" },
-  ];
+  return Object.keys(CATEGORIES).map((slug) => ({ slug }));
 }
 
 export async function generateMetadata({

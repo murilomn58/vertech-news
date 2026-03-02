@@ -1,4 +1,9 @@
-export type CategorySlug = "claude-code" | "ai-general" | "ai-business";
+export type CategorySlug =
+  | "claude-code"
+  | "ai-general"
+  | "ai-business"
+  | "cybersecurity"
+  | "tech-general";
 
 export interface NewsArticle {
   id: string;

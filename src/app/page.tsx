@@ -15,18 +15,12 @@ export default async function HomePage() {
   const articles = await fetchAllNews();
 
   const heroArticle = articles[0];
-  const claudeArticles = getArticlesByCategory(articles, "claude-code").slice(0, 6);
-  const generalArticles = getArticlesByCategory(articles, "ai-general").slice(0, 6);
-  const businessArticles = getArticlesByCategory(articles, "ai-business").slice(0, 6);
-
-  // Top 10 headlines for ticker
   const tickerHeadlines = articles.slice(0, 10);
 
-  const sections: { slug: CategorySlug; articles: typeof claudeArticles }[] = [
-    { slug: "claude-code", articles: claudeArticles },
-    { slug: "ai-general", articles: generalArticles },
-    { slug: "ai-business", articles: businessArticles },
-  ];
+  const sections = (Object.keys(CATEGORIES) as CategorySlug[]).map((slug) => ({
+    slug,
+    articles: getArticlesByCategory(articles, slug).slice(0, 6),
+  }));
 
   return (
     <>

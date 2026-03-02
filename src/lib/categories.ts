@@ -46,6 +46,42 @@ const CATEGORY_KEYWORDS: Record<string, string[]> = {
     "ceo",
     "startup",
   ],
+  cybersecurity: [
+    "cybersecurity",
+    "cyber security",
+    "data breach",
+    "vulnerability",
+    "vulnerabilities",
+    "malware",
+    "ransomware",
+    "zero-day",
+    "zero day",
+    "phishing",
+    "exploit",
+    "hacking",
+    "hacker",
+    "encryption",
+    "cve-",
+    "firewall",
+    "ddos",
+    "botnet",
+    "spyware",
+    "trojan",
+    "backdoor",
+    "infosec",
+    "threat actor",
+    "apt",
+    "credential stuffing",
+    "brute force",
+    "sql injection",
+    "xss",
+    "patch tuesday",
+    "security flaw",
+    "security bug",
+    "security update",
+    "data leak",
+    "password leak",
+  ],
 };
 
 export function categorizeArticle(
@@ -58,6 +94,11 @@ export function categorizeArticle(
   // Check claude-code keywords first (highest priority)
   for (const keyword of CATEGORY_KEYWORDS["claude-code"]) {
     if (text.includes(keyword)) return "claude-code";
+  }
+
+  // Check cybersecurity keywords
+  for (const keyword of CATEGORY_KEYWORDS["cybersecurity"]) {
+    if (text.includes(keyword)) return "cybersecurity";
   }
 
   // Check ai-business keywords
