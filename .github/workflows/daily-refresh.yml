@@ -1,8 +1,8 @@
-name: Daily News Refresh
+name: News Refresh
 
 on:
   schedule:
-    - cron: '0 6 * * *' # Every day at 06:00 UTC
+    - cron: '0 */6 * * *' # Every 6 hours (00:00, 06:00, 12:00, 18:00 UTC)
   workflow_dispatch: # Allow manual trigger
 
 jobs:
@@ -11,7 +11,17 @@ jobs:
     steps:
       - name: Trigger revalidation
         run: |
-          curl -X POST "${{ secrets.SITE_URL }}/api/revalidate" \
-            -H "Content-Type: application/json" \
-            -H "x-revalidation-secret: ${{ secrets.REVALIDATION_SECRET }}" \
-            --fail --silent --show-error
+          for attempt in 1 2 3; do
+            echo "Attempt $attempt..."
+            if curl -X POST "${{ secrets.SITE_URL }}/api/revalidate" \
+              -H "Content-Type: application/json" \
+              -H "x-revalidation-secret: ${{ secrets.REVALIDATION_SECRET }}" \
+              --fail --silent --show-error --max-time 30; then
+              echo "Revalidation successful"
+              exit 0
+            fi
+            echo "Attempt $attempt failed, waiting 30s..."
+            sleep 30
+          done
+          echo "All attempts failed"
+          exit 1

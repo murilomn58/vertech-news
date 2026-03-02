@@ -19,6 +19,9 @@ interface AnalyticsData {
   visitsByCity: Record<string, number>;
   visitsByBrowser: Record<string, number>;
   visitsPerDay: Record<string, number>;
+  uniqueVisitorsPerDay: Record<string, number>;
+  visitsPerSixHours: Record<string, number>;
+  uniqueVisitorsPerSixHours: Record<string, number>;
   topArticles: Array<{
     title: string;
     url: string;
@@ -163,7 +166,12 @@ export default function DashboardClient() {
       </div>
 
       {/* Chart */}
-      <VisitsChart visitsPerDay={data.visitsPerDay} />
+      <VisitsChart
+        visitsPerDay={data.visitsPerDay}
+        uniqueVisitorsPerDay={data.uniqueVisitorsPerDay}
+        visitsPerSixHours={data.visitsPerSixHours}
+        uniqueVisitorsPerSixHours={data.uniqueVisitorsPerSixHours}
+      />
 
       {/* 2-column: Device + Pages */}
       <div className="grid grid-cols-1 md:grid-cols-2 gap-4">

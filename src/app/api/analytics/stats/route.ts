@@ -83,6 +83,9 @@ export async function GET() {
   const visitsByCity: Record<string, number> = {};
   const visitsByBrowser: Record<string, number> = {};
   const visitsPerDay: Record<string, number> = {};
+  const uniqueIPsPerDay: Record<string, Set<string>> = {};
+  const visitsPerSixHours: Record<string, number> = {};
+  const uniqueIPsPerSixHours: Record<string, Set<string>> = {};
 
   for (const v of visits) {
     visitsByPage[v.page] = (visitsByPage[v.page] || 0) + 1;
@@ -96,7 +99,31 @@ export async function GET() {
     if (v.createdAt) {
       const day = v.createdAt.split("T")[0];
       visitsPerDay[day] = (visitsPerDay[day] || 0) + 1;
+
+      // Unique visitors per day
+      if (!uniqueIPsPerDay[day]) uniqueIPsPerDay[day] = new Set();
+      uniqueIPsPerDay[day].add(v.ip);
+
+      // 6-hour bucket: e.g. "2026-03-02T06"
+      const hour = new Date(v.createdAt).getUTCHours();
+      const bucket = Math.floor(hour / 6) * 6;
+      const sixHourKey = `${day}T${String(bucket).padStart(2, "0")}`;
+      visitsPerSixHours[sixHourKey] = (visitsPerSixHours[sixHourKey] || 0) + 1;
+
+      if (!uniqueIPsPerSixHours[sixHourKey])
+        uniqueIPsPerSixHours[sixHourKey] = new Set();
+      uniqueIPsPerSixHours[sixHourKey].add(v.ip);
     }
+  }
+
+  // Convert Sets to counts
+  const uniqueVisitorsPerDay: Record<string, number> = {};
+  for (const [day, ips] of Object.entries(uniqueIPsPerDay)) {
+    uniqueVisitorsPerDay[day] = ips.size;
+  }
+  const uniqueVisitorsPerSixHours: Record<string, number> = {};
+  for (const [key, ips] of Object.entries(uniqueIPsPerSixHours)) {
+    uniqueVisitorsPerSixHours[key] = ips.size;
   }
 
   // Top articles
@@ -142,6 +169,9 @@ export async function GET() {
     visitsByCity,
     visitsByBrowser,
     visitsPerDay,
+    uniqueVisitorsPerDay,
+    visitsPerSixHours,
+    uniqueVisitorsPerSixHours,
     topArticles,
   });
 }

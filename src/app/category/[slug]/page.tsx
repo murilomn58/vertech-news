@@ -6,7 +6,7 @@ import { CategorySlug } from "@/lib/types";
 import NewsGrid from "@/components/ui/NewsGrid";
 import TimestampBadge from "@/components/ui/TimestampBadge";
 
-export const revalidate = 86400;
+export const revalidate = 21600; // 6 hours
 
 export function generateStaticParams() {
   return Object.keys(CATEGORIES).map((slug) => ({ slug }));

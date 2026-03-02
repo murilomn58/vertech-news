@@ -9,7 +9,7 @@ import TickerBar from "@/components/ui/TickerBar";
 import ScrollReveal from "@/components/ui/ScrollReveal";
 import Link from "next/link";
 
-export const revalidate = 86400; // 24 hours
+export const revalidate = 21600; // 6 hours
 
 export default async function HomePage() {
   const articles = await fetchAllNews();
