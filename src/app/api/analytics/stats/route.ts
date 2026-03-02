@@ -24,6 +24,7 @@ interface ClickDoc {
 }
 
 export async function GET() {
+  try {
   const session = await auth();
   if (!session?.user) {
     return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
@@ -174,4 +175,9 @@ export async function GET() {
     uniqueVisitorsPerSixHours,
     topArticles,
   });
+  } catch (err) {
+    console.error("Analytics stats error:", err);
+    const message = err instanceof Error ? err.message : "Unknown error";
+    return NextResponse.json({ error: message }, { status: 500 });
+  }
 }

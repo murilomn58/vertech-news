@@ -39,8 +39,11 @@ export default function DashboardClient() {
 
   const fetchData = useCallback(() => {
     fetch("/api/analytics/stats")
-      .then((r) => {
-        if (!r.ok) throw new Error("Failed to fetch");
+      .then(async (r) => {
+        if (!r.ok) {
+          const body = await r.json().catch(() => ({}));
+          throw new Error(body.error || `HTTP ${r.status}`);
+        }
         return r.json();
       })
       .then((d) => {
@@ -48,7 +51,7 @@ export default function DashboardClient() {
         setError(null);
         setLastRefresh(new Date());
       })
-      .catch(() => setError("Failed to load analytics data"))
+      .catch((e) => setError(e.message || "Failed to load analytics data"))
       .finally(() => setLoading(false));
   }, []);
 
