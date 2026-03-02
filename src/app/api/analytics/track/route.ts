@@ -1,15 +1,45 @@
 import { NextRequest, NextResponse } from "next/server";
 import { getDb } from "@/lib/firebase";
 import { FieldValue } from "firebase-admin/firestore";
+import { createHash } from "crypto";
+import { z } from "zod";
+
+// --- Input validation ---
+const trackSchema = z.object({
+  type: z.enum(["visit", "click"]),
+  page: z.string().max(500).optional(),
+  articleUrl: z.string().max(2000).optional(),
+  articleTitle: z.string().max(500).optional(),
+  category: z.string().max(100).optional(),
+  source: z.string().max(100).optional(),
+});
+
+// --- Rate limiting (in-memory, per-IP, resets on cold start) ---
+const rateMap = new Map<string, { count: number; resetAt: number }>();
+const RATE_LIMIT = 20; // max requests per window
+const RATE_WINDOW = 60_000; // 1 minute
+
+function isRateLimited(ip: string): boolean {
+  const now = Date.now();
+  const entry = rateMap.get(ip);
+
+  if (!entry || now > entry.resetAt) {
+    rateMap.set(ip, { count: 1, resetAt: now + RATE_WINDOW });
+    return false;
+  }
+
+  entry.count++;
+  return entry.count > RATE_LIMIT;
+}
+
+// --- Secure IP hashing with SHA-256 + salt ---
+const IP_SALT = process.env.IP_HASH_SALT || "vertech-default-salt";
 
 function hashIP(ip: string): string {
-  let hash = 0;
-  for (let i = 0; i < ip.length; i++) {
-    const char = ip.charCodeAt(i);
-    hash = (hash << 5) - hash + char;
-    hash |= 0;
-  }
-  return Math.abs(hash).toString(36);
+  return createHash("sha256")
+    .update(ip + IP_SALT)
+    .digest("hex")
+    .slice(0, 16);
 }
 
 function parseUA(ua: string) {
@@ -37,17 +67,34 @@ function parseUA(ua: string) {
 
 export async function POST(request: NextRequest) {
   try {
-    const body = await request.json();
-    const { type, page, articleUrl, articleTitle, category, source } = body;
-
     const ip =
       request.headers.get("x-forwarded-for")?.split(",")[0]?.trim() ||
       "unknown";
+
+    if (isRateLimited(ip)) {
+      return NextResponse.json({ error: "Too many requests" }, { status: 429 });
+    }
+
+    // Reject oversized payloads (16KB max)
+    const contentLength = request.headers.get("content-length");
+    if (contentLength && parseInt(contentLength) > 16_384) {
+      return NextResponse.json({ error: "Payload too large" }, { status: 413 });
+    }
+
+    const body = await request.json();
+    const parsed = trackSchema.safeParse(body);
+
+    if (!parsed.success) {
+      return NextResponse.json({ error: "Invalid payload" }, { status: 400 });
+    }
+
+    const { type, page, articleUrl, articleTitle, category, source } =
+      parsed.data;
+
     const hashedIp = hashIP(ip);
     const ua = request.headers.get("user-agent") || "";
     const { device, os, browser } = parseUA(ua);
 
-    // Use Vercel's built-in geo headers (free, no rate limits)
     const city = request.headers.get("x-vercel-ip-city") || "Unknown";
     const country = request.headers.get("x-vercel-ip-country") || "Unknown";
 
@@ -77,8 +124,7 @@ export async function POST(request: NextRequest) {
     }
 
     return NextResponse.json({ ok: true });
-  } catch (error) {
-    console.error("Analytics tracking error:", error);
+  } catch {
     return NextResponse.json({ error: "Failed to track" }, { status: 500 });
   }
 }

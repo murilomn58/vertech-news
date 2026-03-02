@@ -79,7 +79,7 @@ function LoginForm() {
 
             {/* Footer note */}
             <p className="font-mono text-[10px] text-text-dim mt-6 text-center">
-              Only vertech2026@gmail.com is authorized
+              Authorized personnel only
             </p>
           </div>
         </div>
