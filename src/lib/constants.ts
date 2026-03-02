@@ -5,7 +5,7 @@ export const SITE_CONFIG = {
   tagline: "AI Intelligence Feed",
   description:
     "Dark futuristic AI news aggregator covering Claude Code, general AI, and AI business. Updated daily.",
-  url: process.env.NEXT_PUBLIC_SITE_URL || "https://vertech-news.up.railway.app",
+  url: process.env.NEXT_PUBLIC_SITE_URL || "https://vertechnews.vercel.app",
 };
 
 export const CATEGORIES: Record<CategorySlug, CategoryConfig> = {
@@ -30,14 +30,7 @@ export const CATEGORIES: Record<CategorySlug, CategoryConfig> = {
 };
 
 export const FEED_SOURCES: FeedSource[] = [
-  // Claude Code / Anthropic
-  {
-    url: "https://news.google.com/rss/search?q=%22Claude+Code%22+OR+%22Anthropic%22+OR+%22Claude+AI%22&hl=en-US&gl=US&ceid=US:en",
-    defaultCategory: "claude-code",
-    source: "Google News",
-  },
-
-  // AI General
+  // AI General (keyword categorizer re-sorts Claude/Anthropic articles → claude-code)
   {
     url: "https://techcrunch.com/category/artificial-intelligence/feed/",
     defaultCategory: "ai-general",
@@ -49,20 +42,30 @@ export const FEED_SOURCES: FeedSource[] = [
     source: "Ars Technica",
   },
   {
-    url: "https://news.google.com/rss/search?q=artificial+intelligence+machine+learning+new&hl=en-US&gl=US&ceid=US:en",
+    url: "https://www.theverge.com/rss/ai-artificial-intelligence/index.xml",
     defaultCategory: "ai-general",
-    source: "Google News",
+    source: "The Verge",
+  },
+  {
+    url: "https://www.wired.com/feed/tag/ai/latest/rss",
+    defaultCategory: "ai-general",
+    source: "Wired",
+  },
+  {
+    url: "https://www.technologyreview.com/feed/",
+    defaultCategory: "ai-general",
+    source: "MIT Tech Review",
   },
 
   // AI Business
   {
-    url: "https://news.google.com/rss/search?q=Elon+Musk+AI+OR+Tesla+AI+OR+xAI+OR+%22OpenAI+business%22&hl=en-US&gl=US&ceid=US:en",
+    url: "https://venturebeat.com/category/ai/feed/",
     defaultCategory: "ai-business",
-    source: "Google News",
+    source: "VentureBeat",
   },
   {
-    url: "https://news.google.com/rss/search?q=AI+startup+funding+OR+AI+company+acquisition+OR+AI+IPO&hl=en-US&gl=US&ceid=US:en",
+    url: "https://search.cnbc.com/rs/search/combinedcms/view.xml?partnerId=wrss01&id=19854910",
     defaultCategory: "ai-business",
-    source: "Google News",
+    source: "CNBC",
   },
 ];

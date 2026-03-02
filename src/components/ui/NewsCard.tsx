@@ -82,29 +82,43 @@ export default function NewsCard({ article }: { article: NewsArticle }) {
             loading="lazy"
             onError={(e) => {
               const img = e.target as HTMLImageElement;
-              // If it's already a favicon fallback, hide completely
-              if (img.src.includes("s2/favicons")) {
-                img.style.display = "none";
-              } else {
-                img.style.display = "none";
-              }
+              img.style.display = "none";
+              // Show the fallback sibling
+              const fallback = img.parentElement?.querySelector("[data-fallback]") as HTMLElement;
+              if (fallback) fallback.style.display = "flex";
             }}
           />
-        ) : (
+        ) : null}
+        <div
+          data-fallback
+          className="w-full h-full absolute inset-0 flex flex-col items-center justify-center"
+          style={{
+            display: article.imageUrl ? "none" : "flex",
+            background: `linear-gradient(135deg, ${catColor}12 0%, transparent 50%, ${catColor}08 100%)`,
+            backgroundSize: "100% 100%",
+          }}
+        >
+          {/* Grid pattern overlay */}
           <div
-            className="w-full h-full flex items-center justify-center"
+            className="absolute inset-0 opacity-[0.04]"
             style={{
-              background: `linear-gradient(135deg, ${catColor}15, ${catColor}05)`,
+              backgroundImage: `linear-gradient(${catColor} 1px, transparent 1px), linear-gradient(90deg, ${catColor} 1px, transparent 1px)`,
+              backgroundSize: "24px 24px",
             }}
+          />
+          <span
+            className="font-mono text-3xl font-bold tracking-wider relative"
+            style={{ color: `${catColor}40` }}
           >
-            <span
-              className="font-mono text-4xl"
-              style={{ color: `${catColor}30` }}
-            >
-              &gt;_
-            </span>
-          </div>
-        )}
+            &gt;_
+          </span>
+          <span
+            className="font-mono text-[10px] tracking-widest mt-2 uppercase relative"
+            style={{ color: `${catColor}30` }}
+          >
+            {article.source}
+          </span>
+        </div>
         <div className="absolute top-2 left-2 z-20">
           <CategoryBadge category={article.category} />
         </div>
