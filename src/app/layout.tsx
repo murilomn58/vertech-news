@@ -6,6 +6,8 @@ import ScanlineOverlay from "@/components/layout/ScanlineOverlay";
 import Navbar from "@/components/layout/Navbar";
 import Footer from "@/components/layout/Footer";
 import NotificationPrompt from "@/components/ui/NotificationPrompt";
+import GoogleAnalytics from "@/components/analytics/GoogleAnalytics";
+import TrackingScript from "@/components/analytics/TrackingScript";
 import { SITE_CONFIG } from "@/lib/constants";
 
 const inter = Inter({
@@ -46,6 +48,9 @@ export const metadata: Metadata = {
   },
   robots: { index: true, follow: true },
   manifest: "/manifest.json",
+  verification: {
+    google: process.env.NEXT_PUBLIC_GSC_VERIFICATION,
+  },
 };
 
 export default function RootLayout({
@@ -66,6 +71,8 @@ export default function RootLayout({
           <Footer />
         </div>
         <NotificationPrompt />
+        <GoogleAnalytics />
+        <TrackingScript />
       </body>
     </html>
   );
