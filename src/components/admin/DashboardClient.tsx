@@ -59,9 +59,9 @@ export default function DashboardClient() {
     fetchData();
   }, [fetchData]);
 
-  // Auto-refresh every 60s
+  // Auto-refresh every 5 minutes (matches server cache TTL)
   useEffect(() => {
-    const interval = setInterval(fetchData, 60000);
+    const interval = setInterval(fetchData, 5 * 60 * 1000);
     return () => clearInterval(interval);
   }, [fetchData]);
 
