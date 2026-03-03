@@ -11,9 +11,7 @@ export default function HeroSection({ article }: { article: NewsArticle }) {
 
   return (
     <motion.a
-      href={article.url}
-      target="_blank"
-      rel="noopener noreferrer"
+      href={`/article/${article.id}`}
       initial={{ opacity: 0, y: 30 }}
       animate={{ opacity: 1, y: 0 }}
       transition={{ duration: 0.6 }}

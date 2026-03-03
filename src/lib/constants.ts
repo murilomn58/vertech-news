@@ -1,4 +1,4 @@
-import { CategoryConfig, CategorySlug, FeedSource } from "./types";
+import { AffiliateConfig, CategoryConfig, CategorySlug, FeedSource } from "./types";
 
 export const SITE_CONFIG = {
   name: "Vertech News",
@@ -40,6 +40,98 @@ export const CATEGORIES: Record<CategorySlug, CategoryConfig> = {
     slug: "tech-general",
   },
 };
+
+export const AFFILIATE_LINKS: AffiliateConfig[] = [
+  // Claude Code / AI Coding
+  {
+    name: "Claude Pro",
+    url: "https://claude.ai/upgrade",
+    description: "Upgrade to Claude Pro for unlimited AI coding assistance and longer conversations.",
+    category: "claude-code",
+    badge: "AI Assistant",
+  },
+  {
+    name: "Cursor IDE",
+    url: "https://cursor.com",
+    description: "The AI-first code editor. Write, edit, and debug code with built-in AI.",
+    category: "claude-code",
+    badge: "AI Editor",
+  },
+  {
+    name: "GitHub Copilot",
+    url: "https://github.com/features/copilot",
+    description: "AI pair programmer that helps you write code faster with suggestions.",
+    category: "claude-code",
+    badge: "AI Coding",
+  },
+  // Cybersecurity
+  {
+    name: "NordVPN",
+    url: "https://nordvpn.com",
+    description: "Protect your online privacy with military-grade encryption and secure VPN.",
+    category: "cybersecurity",
+    badge: "VPN",
+  },
+  {
+    name: "1Password",
+    url: "https://1password.com",
+    description: "Secure password manager for teams and individuals. Never reuse a password.",
+    category: "cybersecurity",
+    badge: "Security",
+  },
+  {
+    name: "Proton Mail",
+    url: "https://proton.me",
+    description: "End-to-end encrypted email, VPN, and cloud storage from Switzerland.",
+    category: "cybersecurity",
+    badge: "Privacy",
+  },
+  // AI Business
+  {
+    name: "Notion AI",
+    url: "https://notion.so",
+    description: "AI-powered workspace for docs, projects, and knowledge management.",
+    category: "ai-business",
+    badge: "Productivity",
+  },
+  {
+    name: "Jasper AI",
+    url: "https://jasper.ai",
+    description: "Enterprise AI for marketing teams. Generate on-brand content at scale.",
+    category: "ai-business",
+    badge: "AI Marketing",
+  },
+  // AI General
+  {
+    name: "Anthropic API",
+    url: "https://console.anthropic.com",
+    description: "Build with Claude API — the most capable AI for complex reasoning tasks.",
+    category: "ai-general",
+    badge: "AI API",
+  },
+  {
+    name: "Hugging Face",
+    url: "https://huggingface.co",
+    description: "The platform for open-source AI models, datasets, and ML apps.",
+    category: "ai-general",
+    badge: "ML Platform",
+  },
+  // Tech General
+  {
+    name: "Vercel",
+    url: "https://vercel.com",
+    description: "Deploy web apps instantly. The platform for frontend developers.",
+    category: "tech-general",
+    badge: "Hosting",
+  },
+  {
+    name: "DigitalOcean",
+    url: "https://digitalocean.com",
+    description: "Simple, scalable cloud infrastructure for developers and startups.",
+    category: "tech-general",
+    badge: "Cloud",
+  },
+];
 
 export const FEED_SOURCES: FeedSource[] = [
   // AI General (keyword categorizer re-sorts Claude/Anthropic articles → claude-code)

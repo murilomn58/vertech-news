@@ -53,6 +53,39 @@ export const metadata: Metadata = {
   verification: {
     google: process.env.NEXT_PUBLIC_GSC_VERIFICATION,
   },
+  alternates: {
+    languages: {
+      "en-US": "/",
+      "pt-BR": "/pt",
+    },
+  },
+};
+
+const jsonLdWebsite = {
+  "@context": "https://schema.org",
+  "@type": "WebSite",
+  name: SITE_CONFIG.name,
+  url: SITE_CONFIG.url,
+  description: SITE_CONFIG.description,
+  potentialAction: {
+    "@type": "SearchAction",
+    target: `${SITE_CONFIG.url}/category/{search_term}`,
+    "query-input": "required name=search_term",
+  },
+};
+
+const jsonLdOrganization = {
+  "@context": "https://schema.org",
+  "@type": "Organization",
+  name: "Vertech Solucoes",
+  url: "https://vertechsolucoes.com",
+  description:
+    "Brazilian AI automation and consulting startup. Builders of Vertech News.",
+  brand: {
+    "@type": "Brand",
+    name: SITE_CONFIG.name,
+    url: SITE_CONFIG.url,
+  },
 };
 
 export default function RootLayout({
@@ -62,6 +95,16 @@ export default function RootLayout({
 }>) {
   return (
     <html lang="en">
+      <head>
+        <script
+          type="application/ld+json"
+          dangerouslySetInnerHTML={{ __html: JSON.stringify(jsonLdWebsite) }}
+        />
+        <script
+          type="application/ld+json"
+          dangerouslySetInnerHTML={{ __html: JSON.stringify(jsonLdOrganization) }}
+        />
+      </head>
       <body
         className={`${inter.variable} ${geistMono.variable} bg-void text-text-primary antialiased`}
       >

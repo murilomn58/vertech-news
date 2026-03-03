@@ -2,16 +2,26 @@
 
 import { useEffect, useState } from "react";
 
+function urlBase64ToUint8Array(base64String: string) {
+  const padding = "=".repeat((4 - (base64String.length % 4)) % 4);
+  const base64 = (base64String + padding).replace(/-/g, "+").replace(/_/g, "/");
+  const rawData = window.atob(base64);
+  const outputArray = new Uint8Array(rawData.length);
+  for (let i = 0; i < rawData.length; ++i) {
+    outputArray[i] = rawData.charCodeAt(i);
+  }
+  return outputArray;
+}
+
 export default function NotificationPrompt() {
   const [show, setShow] = useState(false);
   const [status, setStatus] = useState<"idle" | "granted" | "denied">("idle");
 
   useEffect(() => {
-    // Only show if browser supports notifications and permission not yet decided
     if (!("Notification" in window) || !("serviceWorker" in navigator)) return;
+    if (sessionStorage.getItem("notification-dismissed")) return;
 
     if (Notification.permission === "default") {
-      // Delay showing the prompt so it doesn't appear immediately on load
       const timer = setTimeout(() => setShow(true), 3000);
       return () => clearTimeout(timer);
     }
@@ -20,20 +30,35 @@ export default function NotificationPrompt() {
   async function requestPermission() {
     try {
       // Register service worker
-      await navigator.serviceWorker.register("/sw.js");
+      const registration = await navigator.serviceWorker.register("/sw.js");
 
       const permission = await Notification.requestPermission();
       setStatus(permission === "granted" ? "granted" : "denied");
 
       if (permission === "granted") {
-        // Show a test notification
+        // Create push subscription with VAPID key
+        const vapidPublicKey = process.env.NEXT_PUBLIC_VAPID_PUBLIC_KEY;
+
+        if (vapidPublicKey) {
+          const subscription = await registration.pushManager.subscribe({
+            userVisibleOnly: true,
+            applicationServerKey: urlBase64ToUint8Array(vapidPublicKey),
+          });
+
+          // Send subscription to server
+          await fetch("/api/push/subscribe", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify(subscription.toJSON()),
+          });
+        }
+
         new Notification("Vertech News", {
           body: "You'll be notified when new AI news arrives!",
           icon: "/icon-192.png",
         });
       }
 
-      // Hide prompt after a moment
       setTimeout(() => setShow(false), 2000);
     } catch {
       setShow(false);
@@ -42,7 +67,6 @@ export default function NotificationPrompt() {
 
   function dismiss() {
     setShow(false);
-    // Remember dismissal for this session
     sessionStorage.setItem("notification-dismissed", "true");
   }
 

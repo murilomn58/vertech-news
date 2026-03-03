@@ -6,12 +6,14 @@ import { z } from "zod";
 
 // --- Input validation ---
 const trackSchema = z.object({
-  type: z.enum(["visit", "click"]),
+  type: z.enum(["visit", "click", "consulting_cta", "affiliate_click", "newsletter_signup"]),
   page: z.string().max(500).optional(),
   articleUrl: z.string().max(2000).optional(),
   articleTitle: z.string().max(500).optional(),
   category: z.string().max(100).optional(),
   source: z.string().max(100).optional(),
+  affiliateName: z.string().max(200).optional(),
+  ctaLocation: z.string().max(100).optional(),
 });
 
 // --- Rate limiting (in-memory, per-IP, resets on cold start) ---
@@ -88,7 +90,7 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: "Invalid payload" }, { status: 400 });
     }
 
-    const { type, page, articleUrl, articleTitle, category, source } =
+    const { type, page, articleUrl, articleTitle, category, source, affiliateName, ctaLocation } =
       parsed.data;
 
     const hashedIp = hashIP(ip);
@@ -119,6 +121,36 @@ export async function POST(request: NextRequest) {
         source: source || "",
         page: page || "/",
         ip: hashedIp,
+        createdAt: FieldValue.serverTimestamp(),
+      });
+    } else if (type === "consulting_cta") {
+      await db.collection("consulting_clicks").add({
+        ctaLocation: ctaLocation || "unknown",
+        page: page || "/",
+        ip: hashedIp,
+        device,
+        city: decodeURIComponent(city),
+        country,
+        createdAt: FieldValue.serverTimestamp(),
+      });
+    } else if (type === "affiliate_click") {
+      await db.collection("affiliate_clicks").add({
+        affiliateName: affiliateName || "",
+        category: category || "",
+        page: page || "/",
+        ip: hashedIp,
+        device,
+        city: decodeURIComponent(city),
+        country,
+        createdAt: FieldValue.serverTimestamp(),
+      });
+    } else if (type === "newsletter_signup") {
+      await db.collection("newsletter_events").add({
+        page: page || "/",
+        ip: hashedIp,
+        device,
+        city: decodeURIComponent(city),
+        country,
         createdAt: FieldValue.serverTimestamp(),
       });
     }

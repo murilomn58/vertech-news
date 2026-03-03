@@ -1,7 +1,6 @@
 import { fetchAllNews, getArticlesByCategory } from "@/lib/rss";
 import { CATEGORIES } from "@/lib/constants";
 import { CategorySlug } from "@/lib/types";
-import { getActiveSponsors } from "@/lib/sponsored";
 import HeroSection from "@/components/ui/HeroSection";
 import NewsGrid from "@/components/ui/NewsGrid";
 import NeonDivider from "@/components/ui/NeonDivider";
@@ -9,13 +8,32 @@ import TimestampBadge from "@/components/ui/TimestampBadge";
 import TickerBar from "@/components/ui/TickerBar";
 import ScrollReveal from "@/components/ui/ScrollReveal";
 import NewsletterSignup from "@/components/ui/NewsletterSignup";
-import AdSlot from "@/components/ads/AdSlot";
-import SponsoredToolCard from "@/components/ui/SponsoredToolCard";
 import Link from "next/link";
+import { Metadata } from "next";
 
-export const revalidate = 21600; // 6 hours
+export const revalidate = 21600;
 
-export default async function HomePage() {
+const PT_CATEGORY_NAMES: Record<CategorySlug, string> = {
+  "claude-code": "Claude Code",
+  "ai-general": "IA Geral",
+  "ai-business": "IA & Negócios",
+  cybersecurity: "Cibersegurança",
+  "tech-general": "Tecnologia",
+};
+
+export const metadata: Metadata = {
+  title: "Vertech News | Notícias de IA e Tecnologia",
+  description:
+    "Agregador de notícias de tecnologia e inteligência artificial. Cobertura de IA, cibersegurança, Claude Code e mais.",
+  alternates: {
+    languages: {
+      "en-US": "/",
+      "pt-BR": "/pt",
+    },
+  },
+};
+
+export default async function PTHomePage() {
   const articles = await fetchAllNews();
 
   const heroArticle = articles[0];
@@ -26,29 +44,28 @@ export default async function HomePage() {
     articles: getArticlesByCategory(articles, slug).slice(0, 6),
   }));
 
-  let sponsors: Awaited<ReturnType<typeof getActiveSponsors>> = [];
-  try {
-    sponsors = await getActiveSponsors();
-  } catch {
-    // Sponsors are optional
-  }
-
   return (
     <>
       <TickerBar headlines={tickerHeadlines} />
 
       <div className="max-w-7xl mx-auto px-4 py-8">
-        {/* Hero */}
+        {/* Language notice */}
+        <div className="mb-6 font-mono text-xs text-text-dim text-center">
+          <span className="text-neon-cyan">&gt;</span> Versão em Português
+          {" — "}
+          <Link href="/" className="text-neon-cyan hover:underline">
+            Switch to English
+          </Link>
+        </div>
+
         {heroArticle && <HeroSection article={heroArticle} />}
 
-        {/* Newsletter signup */}
         <div className="mt-8 mb-4">
           <ScrollReveal>
             <NewsletterSignup />
           </ScrollReveal>
         </div>
 
-        {/* Category sections */}
         {sections.map((section, i) => {
           const cat = CATEGORIES[section.slug];
           return (
@@ -67,7 +84,7 @@ export default async function HomePage() {
                       }}
                     />
                     <h2 className="font-mono text-lg font-bold tracking-wide">
-                      {cat.name}
+                      {PT_CATEGORY_NAMES[section.slug]}
                     </h2>
                     <span className="font-mono text-[10px] text-text-dim ml-1">
                       [{section.articles.length}]
@@ -77,7 +94,7 @@ export default async function HomePage() {
                     href={`/category/${section.slug}`}
                     className="font-mono text-xs text-text-dim hover:text-neon-cyan transition-colors group/link"
                   >
-                    View all{" "}
+                    Ver todos{" "}
                     <span className="inline-block group-hover/link:translate-x-1 transition-transform">
                       &rarr;
                     </span>
@@ -86,36 +103,6 @@ export default async function HomePage() {
               </ScrollReveal>
 
               <NewsGrid articles={section.articles} />
-
-              {/* Sponsored tools after first category section */}
-              {i === 0 && sponsors.length > 0 && (
-                <div className="mt-8">
-                  <NeonDivider />
-                  <ScrollReveal>
-                    <div className="flex items-center gap-3 mb-6">
-                      <div className="w-1.5 h-7 rounded-full bg-neon-amber" />
-                      <h2 className="font-mono text-lg font-bold tracking-wide">
-                        Featured AI Tools
-                      </h2>
-                      <span className="font-mono text-[9px] text-neon-amber/50 uppercase tracking-widest ml-1">
-                        Sponsored
-                      </span>
-                    </div>
-                  </ScrollReveal>
-                  <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-                    {sponsors.slice(0, 3).map((tool) => (
-                      <ScrollReveal key={tool.id}>
-                        <SponsoredToolCard tool={tool} />
-                      </ScrollReveal>
-                    ))}
-                  </div>
-                </div>
-              )}
-
-              {/* Ad slot after 2nd and 4th category sections */}
-              {(i === 1 || i === 3) && (
-                <AdSlot slot={`home-section-${i}`} format="horizontal" className="mt-6" />
-              )}
             </div>
           );
         })}

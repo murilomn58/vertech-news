@@ -2,11 +2,14 @@
 
 import Link from "next/link";
 import { useState } from "react";
+import { usePathname } from "next/navigation";
 import GlitchText from "@/components/ui/GlitchText";
 import { CATEGORIES } from "@/lib/constants";
 
 export default function Navbar() {
   const [menuOpen, setMenuOpen] = useState(false);
+  const pathname = usePathname();
+  const isPT = pathname.startsWith("/pt");
 
   const categories = Object.values(CATEGORIES);
 
@@ -40,6 +43,22 @@ export default function Navbar() {
               {cat.name}
             </Link>
           ))}
+
+          <div className="w-px h-4 bg-border-dim" />
+
+          <Link
+            href="/tools"
+            className="font-mono text-xs uppercase tracking-widest text-text-secondary hover:text-neon-amber transition-colors duration-200"
+          >
+            Tools
+          </Link>
+
+          <Link
+            href={isPT ? "/" : "/pt"}
+            className="font-mono text-[10px] px-2 py-1 rounded border border-border-dim text-text-dim hover:text-neon-cyan hover:border-neon-cyan/30 transition-colors"
+          >
+            {isPT ? "EN" : "PT-BR"}
+          </Link>
         </div>
 
         {/* Mobile burger */}
@@ -83,6 +102,21 @@ export default function Navbar() {
               {cat.name}
             </Link>
           ))}
+          <Link
+            href="/tools"
+            onClick={() => setMenuOpen(false)}
+            className="block px-4 py-3 font-mono text-sm uppercase tracking-widest text-neon-amber/70 hover:text-neon-amber border-b border-border-dim/50 transition-colors"
+          >
+            <span className="inline-block w-2 h-2 rounded-full mr-3 bg-neon-amber" />
+            Tools
+          </Link>
+          <Link
+            href={isPT ? "/" : "/pt"}
+            onClick={() => setMenuOpen(false)}
+            className="block px-4 py-3 font-mono text-sm uppercase tracking-widest text-text-dim hover:text-neon-cyan border-b border-border-dim/50 transition-colors"
+          >
+            {isPT ? "🇺🇸 English" : "🇧🇷 Português"}
+          </Link>
         </div>
       )}
     </nav>

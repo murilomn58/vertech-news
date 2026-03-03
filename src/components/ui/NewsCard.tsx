@@ -57,9 +57,7 @@ export default function NewsCard({ article }: { article: NewsArticle }) {
   return (
     <a
       ref={cardRef}
-      href={article.url}
-      target="_blank"
-      rel="noopener noreferrer"
+      href={`/article/${article.id}`}
       className="group relative block bg-surface border border-border-dim rounded-lg overflow-hidden transition-[border-color,box-shadow] duration-300"
       style={{ transformStyle: "preserve-3d", transition: "transform 0.15s ease, border-color 0.3s, box-shadow 0.3s" }}
       onMouseMove={handleMouseMove}

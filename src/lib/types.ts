@@ -14,6 +14,8 @@ export interface NewsArticle {
   source: string;
   category: CategorySlug;
   publishedAt: string;
+  summary?: string;
+  aiCommentary?: string;
 }
 
 export interface CategoryConfig {
@@ -27,4 +29,12 @@ export interface FeedSource {
   url: string;
   defaultCategory: CategorySlug;
   source: string;
+}
+
+export interface AffiliateConfig {
+  name: string;
+  url: string;
+  description: string;
+  category: CategorySlug | "general";
+  badge?: string;
 }

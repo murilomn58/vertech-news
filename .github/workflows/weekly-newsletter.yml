@@ -1,0 +1,21 @@
+name: Weekly Newsletter
+
+on:
+  schedule:
+    # Every Monday at 10:00 UTC (7:00 AM BRT)
+    - cron: "0 10 * * 1"
+  workflow_dispatch: # Manual trigger
+
+jobs:
+  send-newsletter:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Send weekly newsletter
+        run: |
+          curl -X POST "${{ secrets.SITE_URL }}/api/newsletter/send" \
+            -H "Content-Type: application/json" \
+            -H "Authorization: Bearer ${{ secrets.NEWSLETTER_SECRET }}" \
+            --fail-with-body
+        env:
+          SITE_URL: ${{ secrets.SITE_URL }}
+          NEWSLETTER_SECRET: ${{ secrets.NEWSLETTER_SECRET }}

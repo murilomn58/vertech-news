@@ -5,6 +5,7 @@ import { CATEGORIES } from "@/lib/constants";
 import { CategorySlug } from "@/lib/types";
 import NewsGrid from "@/components/ui/NewsGrid";
 import TimestampBadge from "@/components/ui/TimestampBadge";
+import ConsultingBanner from "@/components/ui/ConsultingBanner";
 
 export const revalidate = 21600; // 6 hours
 
@@ -61,6 +62,7 @@ export default async function CategoryPage({
       </div>
 
       <NewsGrid articles={categoryArticles} />
+      <ConsultingBanner />
       <TimestampBadge />
     </div>
   );
