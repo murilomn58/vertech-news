@@ -2,7 +2,33 @@
 
 import { useEffect, useState } from "react";
 
-export default function NewsletterSignup({ compact = false }: { compact?: boolean }) {
+const translations = {
+  en: {
+    confirmed: "✓ Confirmed",
+    subscribed: "You're Subscribed",
+    subscribedDesc: "You're all set to receive the Intelligence Brief. Look for weekly summaries of top AI and tech stories in your inbox.",
+    noSpam: "No spam. Unsubscribe anytime.",
+    briefLabel: "> Intelligence Brief",
+    stayAhead: "Stay ahead in AI & Tech",
+    stayAheadDesc: "Get the top AI and tech stories delivered weekly. Curated summaries, no spam, unsubscribe anytime.",
+    subscribe: "Subscribe",
+    subscribing: "Subscribing...",
+  },
+  pt: {
+    confirmed: "✓ Confirmado",
+    subscribed: "Você está inscrito",
+    subscribedDesc: "Tudo pronto para receber o Intelligence Brief. Procure por resumos semanais das principais histórias de IA e tecnologia na sua caixa de entrada.",
+    noSpam: "Sem spam. Desinscrever a qualquer momento.",
+    briefLabel: "> Intelligence Brief",
+    stayAhead: "Fique à frente em IA & Tech",
+    stayAheadDesc: "Receba as principais histórias de IA e tecnologia entregues semanalmente. Resumos curados, sem spam, desinscrever a qualquer momento.",
+    subscribe: "Inscrever",
+    subscribing: "Inscrevendo...",
+  },
+};
+
+export default function NewsletterSignup({ compact = false, lang = "en" }: { compact?: boolean; lang?: "en" | "pt" }) {
+  const t = translations[lang];
   const [email, setEmail] = useState("");
   const [status, setStatus] = useState<"idle" | "loading" | "success" | "error">("idle");
   const [message, setMessage] = useState("");
@@ -82,7 +108,7 @@ export default function NewsletterSignup({ compact = false }: { compact?: boolea
           className="px-3 py-1.5 rounded font-mono text-xs font-bold bg-neon-cyan/10 text-neon-cyan border border-neon-cyan/30
             hover:bg-neon-cyan/20 disabled:opacity-50 transition-colors"
         >
-          {status === "loading" ? "..." : status === "success" ? "✓" : "Subscribe"}
+          {status === "loading" ? "..." : status === "success" ? "✓" : t.subscribe}
         </button>
       </form>
     );
@@ -97,30 +123,28 @@ export default function NewsletterSignup({ compact = false }: { compact?: boolea
         {isSubscribed ? (
           <>
             <p className="font-mono text-[10px] text-neon-green tracking-widest uppercase mb-2">
-              ✓ Confirmed
+              {t.confirmed}
             </p>
             <h3 className="font-mono text-lg font-bold tracking-wide mb-2 text-neon-green">
-              You're Subscribed
+              {t.subscribed}
             </h3>
             <p className="text-text-secondary text-sm mb-6 max-w-md mx-auto">
-              You're all set to receive the Intelligence Brief. Look for weekly
-              summaries of top AI and tech stories in your inbox.
+              {t.subscribedDesc}
             </p>
             <p className="font-mono text-[10px] text-text-dim mt-4">
-              No spam. Unsubscribe anytime.
+              {t.noSpam}
             </p>
           </>
         ) : (
           <>
             <p className="font-mono text-[10px] text-neon-cyan tracking-widest uppercase mb-2">
-              &gt; Intelligence Brief
+              {t.briefLabel}
             </p>
             <h3 className="font-mono text-lg font-bold tracking-wide mb-2">
-              Stay ahead in AI &amp; Tech
+              {t.stayAhead}
             </h3>
             <p className="text-text-secondary text-sm mb-6 max-w-md mx-auto">
-              Get the top AI and tech stories delivered weekly. Curated summaries,
-              no spam, unsubscribe anytime.
+              {t.stayAheadDesc}
             </p>
 
             {status === "success" ? (
@@ -150,7 +174,7 @@ export default function NewsletterSignup({ compact = false }: { compact?: boolea
                     hover:shadow-[0_0_20px_rgba(0,240,255,0.15)] disabled:opacity-50
                     transition-all duration-300"
                 >
-                  {status === "loading" ? "Subscribing..." : "Subscribe"}
+                  {status === "loading" ? t.subscribing : t.subscribe}
                 </button>
               </form>
             )}
@@ -160,7 +184,7 @@ export default function NewsletterSignup({ compact = false }: { compact?: boolea
             )}
 
             <p className="font-mono text-[10px] text-text-dim mt-4">
-              No spam. Unsubscribe anytime.
+              {t.noSpam}
             </p>
           </>
         )}

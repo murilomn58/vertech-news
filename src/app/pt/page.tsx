@@ -1,6 +1,8 @@
 import { fetchAllNews, getArticlesByCategory } from "@/lib/rss";
+import { translateToPTBR } from "@/lib/translate";
 import { CATEGORIES } from "@/lib/constants";
 import { CategorySlug } from "@/lib/types";
+import type { NewsArticle } from "@/lib/types";
 import HeroSection from "@/components/ui/HeroSection";
 import NewsGrid from "@/components/ui/NewsGrid";
 import NeonDivider from "@/components/ui/NeonDivider";
@@ -36,12 +38,24 @@ export const metadata: Metadata = {
 export default async function PTHomePage() {
   const articles = await fetchAllNews();
 
-  const heroArticle = articles[0];
-  const tickerHeadlines = articles.slice(0, 10);
+  // Translate all articles to PT-BR (uses Anthropic if available, falls back to MyMemory)
+  const translatedArticles = await Promise.all(
+    articles.map(async (article) => {
+      const t = await translateToPTBR(
+        article.id,
+        article.title,
+        article.description ?? ""
+      );
+      return { ...article, title: t.title, description: t.description } as NewsArticle;
+    })
+  );
+
+  const heroArticle = translatedArticles[0];
+  const tickerHeadlines = translatedArticles.slice(0, 10);
 
   const sections = (Object.keys(CATEGORIES) as CategorySlug[]).map((slug) => ({
     slug,
-    articles: getArticlesByCategory(articles, slug).slice(0, 6),
+    articles: getArticlesByCategory(translatedArticles, slug).slice(0, 6),
   }));
 
   return (
@@ -62,7 +76,7 @@ export default async function PTHomePage() {
 
         <div className="mt-8 mb-4">
           <ScrollReveal>
-            <NewsletterSignup />
+            <NewsletterSignup lang="pt" />
           </ScrollReveal>
         </div>
 

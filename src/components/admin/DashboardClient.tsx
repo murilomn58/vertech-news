@@ -2,6 +2,7 @@
 
 import { useEffect, useState, useCallback } from "react";
 import StatsCard from "./StatsCard";
+import SubscriberGrowth from "./SubscriberGrowth";
 import VisitsChart from "./VisitsChart";
 import DeviceBreakdown from "./DeviceBreakdown";
 import TopArticles from "./TopArticles";
@@ -13,6 +14,9 @@ interface AnalyticsData {
   uniqueVisitors: number;
   todayVisits: number;
   totalClicks: number;
+  totalSubscribers: number;
+  activeSubscribers: number;
+  subscribersPerDay: Record<string, number>;
   visitsByPage: Record<string, number>;
   visitsByDevice: Record<string, number>;
   visitsByCountry: Record<string, number>;
@@ -141,7 +145,17 @@ export default function DashboardClient() {
       </div>
 
       {/* Stats cards */}
-      <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+      <div className="grid grid-cols-2 md:grid-cols-5 gap-4">
+        <StatsCard
+          label="Subscribers"
+          value={data.activeSubscribers}
+          accent="#f472b6"
+          sub={
+            data.totalSubscribers > data.activeSubscribers
+              ? `${data.totalSubscribers - data.activeSubscribers} unsubscribed`
+              : "all active"
+          }
+        />
         <StatsCard
           label="Total Views"
           value={data.totalVisits}
@@ -167,6 +181,9 @@ export default function DashboardClient() {
           sub="total clicks"
         />
       </div>
+
+      {/* Subscriber Growth */}
+      <SubscriberGrowth subscribersPerDay={data.subscribersPerDay} />
 
       {/* Chart */}
       <VisitsChart

@@ -1,0 +1,22 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(node --version)",
+      "Bash(npm --version)",
+      "Bash(npx --version)",
+      "Bash(timeout 15 npm run dev)",
+      "WebSearch",
+      "Bash(npx next:*)",
+      "Bash(npm install:*)",
+      "Bash(npx vercel:*)",
+      "Bash(npx tsc:*)",
+      "Bash(vercel:*)",
+      "Bash(gh:*)",
+      "Bash(echo:*)",
+      "Bash(curl:*)",
+      "WebFetch(domain:sitevertech-production.up.railway.app)",
+      "Bash(node:*)",
+      "Bash(ls:*)"
+    ]
+  }
+}
