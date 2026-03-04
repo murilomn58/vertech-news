@@ -13,14 +13,18 @@ jobs:
         run: |
           for attempt in 1 2 3; do
             echo "Attempt $attempt..."
-            if curl -X POST "${{ secrets.SITE_URL }}/api/revalidate" \
+            HTTP_STATUS=$(curl -s -o /tmp/response.txt -w "%{http_code}" \
+              -X POST "${{ secrets.SITE_URL }}/api/revalidate" \
               -H "Content-Type: application/json" \
               -H "x-revalidation-secret: ${{ secrets.REVALIDATION_SECRET }}" \
-              --fail --silent --show-error --max-time 30; then
+              --max-time 60)
+            echo "HTTP status: $HTTP_STATUS"
+            echo "Response: $(cat /tmp/response.txt)"
+            if [ "$HTTP_STATUS" = "200" ]; then
               echo "Revalidation successful"
               exit 0
             fi
-            echo "Attempt $attempt failed, waiting 30s..."
+            echo "Attempt $attempt failed (HTTP $HTTP_STATUS), waiting 30s..."
             sleep 30
           done
           echo "All attempts failed"
