@@ -76,7 +76,7 @@ export default async function PTHomePage() {
 
         <div className="mt-8 mb-4">
           <ScrollReveal>
-            <NewsletterSignup />
+            <NewsletterSignup lang="pt" />
           </ScrollReveal>
         </div>
 
