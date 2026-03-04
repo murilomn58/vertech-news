@@ -47,6 +47,28 @@ export async function GET() {
 
     const db = getDb();
 
+    // Subscribers
+    const subscribersSnap = await db.collection("subscribers").get();
+    let totalSubscribers = 0;
+    let activeSubscribers = 0;
+    const subscribersPerDay: Record<string, number> = {};
+
+    for (const doc of subscribersSnap.docs) {
+      const d = doc.data();
+      totalSubscribers++;
+      if (d.active !== false) activeSubscribers++;
+
+      if (d.subscribedAt) {
+        const day =
+          typeof d.subscribedAt === "string"
+            ? d.subscribedAt.split("T")[0]
+            : d.subscribedAt.toDate?.()?.toISOString().split("T")[0];
+        if (day) {
+          subscribersPerDay[day] = (subscribersPerDay[day] || 0) + 1;
+        }
+      }
+    }
+
     const visitsSnap = await db
       .collection("visits")
       .where("createdAt", ">=", thirtyDaysAgo)
@@ -177,6 +199,9 @@ export async function GET() {
       uniqueVisitors: uniqueIPs,
       todayVisits,
       totalClicks: clicks.length,
+      totalSubscribers,
+      activeSubscribers,
+      subscribersPerDay,
       visitsByPage,
       visitsByDevice,
       visitsByCountry,

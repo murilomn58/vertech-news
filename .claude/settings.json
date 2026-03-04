@@ -1,0 +1,8 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(gh pr merge 1 --merge --delete-branch)",
+      "Bash(gh pr ready 1)"
+    ]
+  }
+}
