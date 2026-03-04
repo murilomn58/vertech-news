@@ -50,15 +50,12 @@ export default function Footer() {
               We build AI automation, custom pipelines, and intelligent systems
               for businesses. This site is a demo of what we do.
             </p>
-            <a
-              href={CONTACT_EMAIL}
-              className="inline-flex items-center gap-1.5 font-mono text-xs text-neon-cyan hover:text-neon-cyan/80 transition-colors mb-4"
-            >
+            <div className="inline-flex items-center gap-1.5 font-mono text-xs text-neon-cyan mb-4">
               <svg className="w-3.5 h-3.5" fill="currentColor" viewBox="0 0 24 24">
                 <path d="M20 4H4c-1.1 0-1.99.9-1.99 2L2 18c0 1.1.9 2 2 2h16c1.1 0 2-.9 2-2V6c0-1.1-.9-2-2-2zm0 4l-8 5-8-5V6l8 5 8-5v2z" />
               </svg>
-              Contact us via Email &rarr;
-            </a>
+              vertech2026@gmail.com
+            </div>
             <div className="mt-4">
               <p className="font-mono text-[10px] text-text-dim uppercase tracking-widest mb-2">Newsletter</p>
               <NewsletterSignup compact />
