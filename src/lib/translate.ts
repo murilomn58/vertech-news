@@ -88,11 +88,16 @@ Respond in JSON: {"title": "...", "description": "..."${summary ? ', "summary": 
 
       const parsed = JSON.parse(jsonMatch[0]) as Translation;
 
-      // Cache
-      await cacheRef.set({
-        ...parsed,
+      // Cache (filter out undefined values for Firestore)
+      const cacheData: Record<string, unknown> = {
+        title: parsed.title,
+        description: parsed.description,
         translatedAt: new Date().toISOString(),
-      });
+      };
+      if (parsed.summary !== undefined) cacheData.summary = parsed.summary;
+      if (parsed.commentary !== undefined) cacheData.commentary = parsed.commentary;
+
+      await cacheRef.set(cacheData);
 
       return parsed;
     } catch (error) {
@@ -109,11 +114,16 @@ Respond in JSON: {"title": "...", "description": "..."${summary ? ', "summary": 
 
   const result = { title: translatedTitle, description: translatedDesc, summary, commentary };
 
-  // Cache the result
-  await cacheRef.set({
-    ...result,
+  // Cache the result (filter out undefined values for Firestore)
+  const cacheData: Record<string, unknown> = {
+    title: translatedTitle,
+    description: translatedDesc,
     translatedAt: new Date().toISOString(),
-  });
+  };
+  if (summary !== undefined) cacheData.summary = summary;
+  if (commentary !== undefined) cacheData.commentary = commentary;
+
+  await cacheRef.set(cacheData);
 
   return result;
 }
