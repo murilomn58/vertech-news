@@ -11,6 +11,7 @@ import ScrollReveal from "@/components/ui/ScrollReveal";
 import NewsletterSignup from "@/components/ui/NewsletterSignup";
 import AdSlot from "@/components/ads/AdSlot";
 import SponsoredToolCard from "@/components/ui/SponsoredToolCard";
+import CareerBanner from "@/components/ui/CareerBanner";
 import Link from "next/link";
 
 export const revalidate = 21600; // 6 hours
@@ -45,6 +46,13 @@ export default async function HomePage() {
         <div className="mt-8 mb-4">
           <ScrollReveal>
             <NewsletterSignup />
+          </ScrollReveal>
+        </div>
+
+        {/* Career affiliate — compact, right below newsletter */}
+        <div className="mb-8">
+          <ScrollReveal>
+            <CareerBanner locale="en" />
           </ScrollReveal>
         </div>
 

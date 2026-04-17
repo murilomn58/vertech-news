@@ -8,6 +8,7 @@ import TimestampBadge from "@/components/ui/TimestampBadge";
 import TickerBar from "@/components/ui/TickerBar";
 import ScrollReveal from "@/components/ui/ScrollReveal";
 import NewsletterSignup from "@/components/ui/NewsletterSignup";
+import CareerBanner from "@/components/ui/CareerBanner";
 import Link from "next/link";
 import { Metadata } from "next";
 
@@ -63,6 +64,13 @@ export default async function PTHomePage() {
         <div className="mt-8 mb-4">
           <ScrollReveal>
             <NewsletterSignup />
+          </ScrollReveal>
+        </div>
+
+        {/* Career affiliate — compact, right below newsletter */}
+        <div className="mb-8">
+          <ScrollReveal>
+            <CareerBanner locale="pt" />
           </ScrollReveal>
         </div>
 
