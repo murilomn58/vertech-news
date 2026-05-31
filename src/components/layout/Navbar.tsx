@@ -57,7 +57,7 @@ export default function Navbar() {
             href={isPT ? "/" : "/pt"}
             className="font-mono text-[10px] px-2 py-1 rounded border border-border-dim text-text-dim hover:text-neon-cyan hover:border-neon-cyan/30 transition-colors"
           >
-            {isPT ? "EN" : "PT-BR"}
+            {isPT ? "🇺🇸 EN" : "🇧🇷 PT-BR"}
           </Link>
         </div>
 

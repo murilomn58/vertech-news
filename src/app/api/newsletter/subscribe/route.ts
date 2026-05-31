@@ -1,5 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { getDb } from "@/lib/firebase";
+import { renderWelcomeEmail } from "@/lib/email-template";
+import { SITE_CONFIG } from "@/lib/constants";
 import { z } from "zod";
 
 const subscribeSchema = z.object({
@@ -41,6 +43,33 @@ export async function POST(request: NextRequest) {
       subscribedAt: new Date().toISOString(),
       active: true,
     });
+
+    // Send welcome email if Resend is configured
+    const resendKey = process.env.RESEND_API_KEY;
+    if (resendKey) {
+      const siteUrl = SITE_CONFIG.url;
+      const unsubUrl = `${siteUrl}/api/newsletter/unsubscribe?email=${encodeURIComponent(normalizedEmail)}`;
+      const html = renderWelcomeEmail(normalizedEmail);
+      await fetch("https://api.resend.com/emails", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${resendKey}`,
+        },
+        body: JSON.stringify({
+          from: process.env.NEWSLETTER_FROM || "Vertech News <news@vertechnews.com>",
+          to: normalizedEmail,
+          subject: "Welcome to the AI Intelligence Brief",
+          html,
+          headers: {
+            "List-Unsubscribe": `<${unsubUrl}>`,
+            "List-Unsubscribe-Post": "List-Unsubscribe=One-Click",
+          },
+        }),
+      }).catch((err) => {
+        console.error("[Newsletter] Welcome email failed:", err);
+      });
+    }
 
     return NextResponse.json({ ok: true, message: "Subscribed successfully" });
   } catch {

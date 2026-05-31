@@ -2,6 +2,8 @@ import { NextRequest, NextResponse } from "next/server";
 import { getDb } from "@/lib/firebase";
 import { fetchAllNews } from "@/lib/rss";
 import { renderNewsletterEmail } from "@/lib/email-template";
+import { SITE_CONFIG } from "@/lib/constants";
+import { getActiveSponsors } from "@/lib/sponsored";
 
 export async function POST(request: NextRequest) {
   try {
@@ -36,9 +38,14 @@ export async function POST(request: NextRequest) {
       year: "numeric",
     })}`;
 
+    // Get active sponsor for Tool of the Week
+    const activeSponsors = await getActiveSponsors();
+    const sponsor = activeSponsors[0] ?? null;
+
     const html = renderNewsletterEmail({
       articles: topArticles,
       weekLabel,
+      sponsor,
     });
 
     // Send via Resend (or log for now if no API key)
@@ -59,12 +66,19 @@ export async function POST(request: NextRequest) {
             Authorization: `Bearer ${resendKey}`,
           },
           body: JSON.stringify(
-            batch.map((email) => ({
-              from: process.env.NEWSLETTER_FROM || "Vertech News <news@vertechnews.com>",
-              to: email,
-              subject: `AI Intel Brief — ${weekLabel}`,
-              html: html.replace("{{email}}", encodeURIComponent(email)),
-            }))
+            batch.map((email) => {
+              const unsubUrl = `${SITE_CONFIG.url}/api/newsletter/unsubscribe?email=${encodeURIComponent(email)}`;
+              return {
+                from: process.env.NEWSLETTER_FROM || "Vertech News <onboarding@resend.dev>",
+                to: email,
+                subject: `AI Intel Brief — ${weekLabel}`,
+                html: html.replace("{{email}}", encodeURIComponent(email)),
+                headers: {
+                  "List-Unsubscribe": `<${unsubUrl}>`,
+                  "List-Unsubscribe-Post": "List-Unsubscribe=One-Click",
+                },
+              };
+            })
           ),
         });
 
@@ -84,6 +98,10 @@ export async function POST(request: NextRequest) {
       subscriberCount: subscribersSnap.size,
       sentCount,
       articleCount: topArticles.length,
+      ...(sponsor && {
+        sponsorId: sponsor.id,
+        sponsorName: sponsor.name,
+      }),
     });
 
     return NextResponse.json({ ok: true, sent: sentCount });

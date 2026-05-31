@@ -9,6 +9,7 @@ export interface SponsoredTool {
   category: string;
   activeFrom: string;
   activeUntil: string;
+  reportToken?: string;
 }
 
 // In-memory cache (5 minutes)
